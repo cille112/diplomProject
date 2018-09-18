@@ -8,7 +8,7 @@ public class jobAssignment {
 	int[] rowPicked;
 	int[] sqaure;
 	int[] triangle;
-	boolean change = true;
+	boolean change;
 	int epsilon = 100;
 	int lengthPath = 0;
 	int [] pathNewRow;
@@ -81,11 +81,11 @@ public class jobAssignment {
 	}
 
 	public void markingProcedure(){
-		change = true;
-		while(change){
+		do {
 			change = false;
 			stepOne();
-		}
+		} while (change);
+
 	}
 
 	public void resetMatching(){
