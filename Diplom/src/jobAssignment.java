@@ -9,10 +9,11 @@ public class jobAssignment {
 	int[] sqaure;
 	int[] triangle;
 	boolean change;
-	int epsilon = 100;
+	int epsilon = 1000;
 	int lengthPath = 0;
 	int [] pathNewRow;
 	int [] pathNewColumn;
+	boolean backTostepOne = false;
 
 
 	public jobAssignment(int[][]matrix){
@@ -24,11 +25,11 @@ public class jobAssignment {
 		this.triangle = new int[matrix.length];
 		this.pathNewRow = new int[matrix.length];
 		this.pathNewColumn = new int [matrix.length];
+		this.auxiliaryNumbersColumn = new int[orginalMatrix.length];
+		this.auxiliaryNumbersRow = new int[orginalMatrix.length];
 	}
 
 	public void initialzeAuxiliray(){
-		auxiliaryNumbersColumn = new int[orginalMatrix.length];
-		auxiliaryNumbersRow = new int[orginalMatrix.length];
 		for (int i = 0; i < orginalMatrix.length; i++) {
 			columnPicked[i] = -1;
 			rowPicked[i] = -1;
@@ -46,8 +47,10 @@ public class jobAssignment {
 	public void makeEqualityGraph(){
 		for (int i = 0; i < orginalMatrix.length; i++) {
 			for (int j = 0; j < orginalMatrix.length; j++) {
-				if (orginalMatrix[i][j] == auxiliaryNumbersColumn[j] + auxiliaryNumbersRow[i])
-					equalityGraph[i][j] = 1;
+				equalityGraph[i][j] = 0;
+				if (orginalMatrix[i][j] == auxiliaryNumbersColumn[j] + auxiliaryNumbersRow[i]){
+					equalityGraph[i][j] = 1;	
+				}
 			}
 		}
 	}
@@ -56,9 +59,10 @@ public class jobAssignment {
 		for (int i = 0; i < equalityGraph.length; i++) {
 			for (int j = 0; j < equalityGraph.length; j++) {
 				if (equalityGraph[i][j] == 1){
-					if(rowPicked[j] == -1){
+					if(rowPicked[j] == -1 && columnPicked[i] == -1){
 						columnPicked[i] = j;
 						rowPicked[j] = i;
+						//System.out.println("Picked: " + i +" " +j);
 						lengthPath++;
 						break;
 					}
@@ -67,7 +71,7 @@ public class jobAssignment {
 			}
 		}
 	}
-	
+
 
 
 	public void initialzeMarkingProcedure(){
@@ -90,22 +94,25 @@ public class jobAssignment {
 
 	public void resetMatching(){
 		for (int i = 0; i < auxiliaryNumbersColumn.length; i++) {
-			rowPicked[i] = -1;
-			columnPicked[i] = -1;
+//			rowPicked[i] = -1;
+//			columnPicked[i] = -1;
 			sqaure[i] = 0;
 			triangle[i] = 0;
 		}
-		lengthPath = 0;
+		//lengthPath = 0;
+		epsilon = 1000;
+		backTostepOne = false;
 	}
-	
+
 	public void printMatching(){
 		int price = 0;
 		for (int i = 0; i < auxiliaryNumbersColumn.length; i++) {
-			price = price + orginalMatrix[i][columnPicked[i]];
+			if(orginalMatrix[i][columnPicked[i]] != 101)	
+				price = price + orginalMatrix[i][columnPicked[i]];
 		}
 		System.out.println(price);
 	}
-	
+
 	public void updateAuxilirayNumbers(){
 		for (int i = 0; i < sqaure.length; i++) {
 			if(sqaure[i] == 2){
@@ -120,10 +127,10 @@ public class jobAssignment {
 			}
 		}
 		for (int i = 0; i < sqaure.length; i++) {
-			if(sqaure[i] == 2){
+			if(sqaure[i] != 0){
 				auxiliaryNumbersRow[i] = auxiliaryNumbersRow[i] - epsilon;
 			}
-			if(triangle[i] == 2){
+			if(triangle[i] == 1){
 				auxiliaryNumbersColumn[i] = auxiliaryNumbersColumn[i] + epsilon;
 			}
 		}
@@ -133,50 +140,57 @@ public class jobAssignment {
 		for (int i = 0; i < sqaure.length; i++) {
 			if (sqaure[i] == 1){
 				sqaure[i] = 2;
-				for (int j = 0; j < equalityGraph[i].length; j++) {
+				for (int j = 0; j < equalityGraph.length; j++) {
 					if(equalityGraph[i][j] == 1 && triangle[j] == 0){
 						triangle[j] = 1;
 						change = true;
 						pathNewColumn[i] = j;
-						stepTwo();
+						stepTwo(j);
+						if(backTostepOne){
+							backTostepOne = false;
+							break;
+						}
 					}
 				}
 			}
+			pathNewColumn[i] = -1;
+
 		}
 	}
 
 	private void stepOne(int i){
-		sqaure[i] = 2;
-		for (int j = 0; j < sqaure.length; j++) {
-			if(equalityGraph[i][j] == 1 && triangle[j] == 0){
-				triangle[j] = 1;
-				change = true;
-				pathNewColumn[i] = j;
-				stepTwo();
-
-			}
-		}
-	}
-
-	private void stepTwo(){
-		for (int i = 0; i < triangle.length; i++) {
-			if(triangle[i] == 1){
-				if(rowPicked[i] != -1){
-					sqaure[rowPicked[i]] = 1;
-					triangle[i] = 2;
+			sqaure[i] = 2;
+			for (int j = 0; j < sqaure.length; j++) {
+				if(equalityGraph[i][j] == 1 && triangle[j] == 0){
+					triangle[j] = 1;
 					change = true;
-					pathNewRow[i] = rowPicked[i];
-					stepOne(i);
-				}
-				else{
-					changePath();
-					return;
+					pathNewColumn[i] = j;
+					stepTwo(j);
+					if(backTostepOne)
+						return;
 				}
 			}
-		}
+			pathNewColumn[i] = -1;
 	}
+
+	private void stepTwo(int i){
+		if(backTostepOne)
+			return;
+			if(rowPicked[i] != -1){
+				sqaure[rowPicked[i]] = 1;
+				change = true;
+				pathNewRow[i] = rowPicked[i];
+				stepOne(rowPicked[i]);
+			}
+			else{
+				changePath();
+			}
+			pathNewRow[i] = -1;
+		}
+	
 
 	private void changePath(){
+		backTostepOne = true;
 		for (int i = 0; i < pathNewColumn.length; i++) {
 			if(pathNewColumn[i] != -1){
 				columnPicked[i] = pathNewColumn[i];
