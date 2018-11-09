@@ -1,16 +1,18 @@
+import java.net.StandardSocketOptions;
 import java.util.ArrayList;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class dataReader {
+public class DataReader {
 
 	String jsonstring;	
 	JSONArray sub, classes = null;
 	JSONObject jsonObj, oneClass, time = null;
 	CalculatePunish calculate = new CalculatePunish();
 
-	public dataReader(String json) {
+
+	public DataReader(String json) {
 		this.jsonstring = json;
 	}
 
@@ -44,6 +46,7 @@ public class dataReader {
 	}
 
 	public Substitute[] createSubstitutes(Lecture[] lectures, ArrayList<String> tis){
+		int g = 0;
 		Substitute[] substitutesList = null;
 		try {
 			sub = jsonObj.getJSONArray("Substitutes");
@@ -55,10 +58,10 @@ public class dataReader {
 				int course = sub.getJSONObject(i).getInt("Courses");
 				int rating = sub.getJSONObject(i).getInt("Rating");
 				int edu = sub.getJSONObject(i).getInt("Education");
-				minusWeight = minusWeight + calculate.calculateItem(exp, jsonObj.getJSONObject("ExperiencePenalty").getJSONArray("Intervals"));
-				minusWeight = minusWeight + calculate.calculateItem(course, jsonObj.getJSONObject("CoursePenalty").getJSONArray("Intervals"));
-				minusWeight = minusWeight + calculate.calculateItem(rating, jsonObj.getJSONObject("RatingPenalty").getJSONArray("Intervals"));
-				minusWeight = minusWeight + calculate.calculateItem(edu, jsonObj.getJSONObject("EducationPenalty").getJSONArray("Intervals"));
+				minusWeight += calculate.calculateItem(exp, jsonObj.getJSONObject("ExperiencePenalty").getJSONArray("Intervals"));
+				minusWeight += calculate.calculateItem(course, jsonObj.getJSONObject("CoursePenalty").getJSONArray("Intervals"));
+				minusWeight += calculate.calculateItem(rating, jsonObj.getJSONObject("RatingPenalty").getJSONArray("Intervals"));
+				minusWeight += calculate.calculateItem(edu, jsonObj.getJSONObject("EducationPenalty").getJSONArray("Intervals"));
 				TimeInterval[] til = new TimeInterval[sub.getJSONObject(i).getJSONArray("AvailableTime").length()];
 				for (int j = 0; j < til.length; j++) {
 					JSONObject time = sub.getJSONObject(i).getJSONArray("AvailableTime").getJSONObject(j);
@@ -91,18 +94,26 @@ public class dataReader {
 								gender = sub.getJSONObject(i).getInt("Gender");
 							} catch (Exception e) {
 							}
-							startWeight = startWeight - calculate.calculateItem(subExp, jsonObj.getJSONObject("SubjectExperiencePenalty").getJSONArray("Intervals"));
-							startWeight = startWeight - calculate.calculateItem(classExp, jsonObj.getJSONObject("ClassExperiencePenalty").getJSONArray("Intervals"));
-							startWeight = startWeight - calculate.genderCalculate(gender, lectures[k].subGender, jsonObj.getInt("GenderPenalty"));
-							startWeight = startWeight - calculate.calculateItem(level, jsonObj.getJSONObject("SubjectLevelPenalty").getJSONArray("Intervals"));
-							startWeight = startWeight - minusWeight;
+							startWeight -= Math.round(calculate.calculateItem(subExp, jsonObj.getJSONObject("SubjectExperiencePenalty").getJSONArray("Intervals")));
+							//System.out.println("subExp: " + calculate.calculateItem(subExp, jsonObj.getJSONObject("SubjectExperiencePenalty").getJSONArray("Intervals")));
+							startWeight -= Math.round(calculate.calculateItem(classExp, jsonObj.getJSONObject("ClassExperiencePenalty").getJSONArray("Intervals")));
+							//System.out.println("ClassExp: " + calculate.calculateItem(classExp, jsonObj.getJSONObject("ClassExperiencePenalty").getJSONArray("Intervals")));
+							startWeight -= Math.round(calculate.genderCalculate(gender, lectures[k].subGender, jsonObj.getInt("GenderPenalty")));
+							//System.out.println("Gender: " + calculate.genderCalculate(gender, lectures[k].subGender, jsonObj.getInt("GenderPenalty")));
+							startWeight -= Math.round(calculate.calculateItem(level, jsonObj.getJSONObject("SubjectLevelPenalty").getJSONArray("Intervals")));
+							//System.out.println("Level: " + calculate.calculateItem(level, jsonObj.getJSONObject("SubjectLevelPenalty").getJSONArray("Intervals")));
+							//System.out.println(minusWeight);
+							startWeight -= minusWeight;
 							if(startWeight < 0)
 								startWeight = 0;
-							weight[k] = (int) startWeight;
+							weight[k] = (int) Math.round(startWeight);
+							
+							//System.out.println(Math.round(startWeight) + " " + startWeight);
 						}
-						
+
 					}
-					substitutesList[sub.length()*j+i] = new Substitute(id, ti, weight);
+					substitutesList[g] = new Substitute(id, ti, weight);
+					g++;
 				}
 
 			}
@@ -126,7 +137,70 @@ public class dataReader {
 			matrix[i] = arrayTotal;
 		}
 		return matrix;
-		
+
+	}
+
+	public JSONArray gapPen(){
+		try {
+			return jsonObj.getJSONObject("GapPenalty").getJSONArray("Intervals");
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public JSONArray timePen(){
+		try {
+			return jsonObj.getJSONObject("TimePenalty").getJSONArray("Intervals");
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public double gapDouble(){
+		try {
+			return jsonObj.getDouble("ContinuationThreshold");
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	public double penDouble(){
+		try {
+			return jsonObj.getDouble("ContinuationPenalty");
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	public ArrayList<ArrayList<Lecture>> findDoubleLectures(Lecture[] lectures){
+		ArrayList<ArrayList<Lecture>> lec = new ArrayList<ArrayList<Lecture>>();
+		Lecture[] oldLec = new Lecture[lectures.length];
+		for (int i = 0; i < lectures.length; i++) {
+			for (int j = 0; j < oldLec.length; j++) {
+				if(oldLec[j] == null){
+					oldLec[i] = lectures[i];
+					break;
+				}
+				if(lectures[i].classid.equals(oldLec[j].classid)){
+					if(lectures[i].subject.equals(oldLec[j].subject)){
+						if(lectures[i].ti.findDiffernec(oldLec[j].ti) <=gapDouble()){
+							ArrayList<Lecture>	temp = new ArrayList<>();
+							temp.add(lectures[i]);
+							temp.add(oldLec[j]);
+							lec.add(temp);
+							oldLec[i] = lectures[i];
+							break;
+						}
+					}
+
+
+				}
+			}
+		}
+		return lec;
+
 	}
 
 }

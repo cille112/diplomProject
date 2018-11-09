@@ -1,4 +1,4 @@
-public class jobAssignment {
+public class JobAssignment {
 
 	int[][] orginalMatrix;
 	int[] auxiliaryNumbersRow;
@@ -16,7 +16,7 @@ public class jobAssignment {
 	boolean backTostepOne = false;
 
 
-	public jobAssignment(int[][]matrix){
+	public JobAssignment(int[][]matrix){
 		this.orginalMatrix = matrix;
 		this.equalityGraph = new int[matrix.length][matrix.length];
 		this.columnPicked = new int[matrix.length];
@@ -67,7 +67,6 @@ public class jobAssignment {
 						break;
 					}
 				}
-
 			}
 		}
 	}
@@ -94,23 +93,20 @@ public class jobAssignment {
 
 	public void resetMatching(){
 		for (int i = 0; i < auxiliaryNumbersColumn.length; i++) {
-//			rowPicked[i] = -1;
-//			columnPicked[i] = -1;
 			sqaure[i] = 0;
 			triangle[i] = 0;
 		}
-		//lengthPath = 0;
 		epsilon = 1000;
 		backTostepOne = false;
 	}
 
-	public void printMatching(){
+	public int printMatching(){
 		int price = 0;
 		for (int i = 0; i < auxiliaryNumbersColumn.length; i++) {
 			if(orginalMatrix[i][columnPicked[i]] != 101)	
 				price = price + orginalMatrix[i][columnPicked[i]];
 		}
-		System.out.println(price);
+		return price;
 	}
 
 	public void updateAuxilirayNumbers(){
