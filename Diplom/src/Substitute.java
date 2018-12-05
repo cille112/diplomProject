@@ -40,4 +40,16 @@ public class Substitute {
 		}
 		return list.toArray(new Substitute[list.size()]);
 	}
+	
+	public static Lecture[] updateLecture(Substitute[] sub, int lec){
+		Lecture[] lectures = new Lecture[lec];
+		for (int i = 0; i < sub.length; i++) {
+			if(sub[i].lecture !=null){
+				Lecture temp = sub[i].lecture;
+				temp.sub = i;
+				lectures[sub[i].index] = temp;
+			}
+		}
+		return lectures;
+	}
 }

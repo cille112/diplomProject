@@ -66,5 +66,19 @@ public class TimeInterval {
 		
 		return (int) (hours*60+minutes);
 	}
+	
+	public int getMinutes(){
+		LocalDateTime begin = start;;
+		LocalDateTime finish = end;
+		
+		long hours = begin.until( finish, ChronoUnit.HOURS);
+		begin = begin.plusHours( hours );
+		
+		long minutes = begin.until( finish, ChronoUnit.MINUTES);
+		begin = begin.plusMinutes( minutes );
+
+		
+		return (int) (hours*60+minutes);
+	}
 
 }

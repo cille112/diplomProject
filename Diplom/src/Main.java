@@ -1,10 +1,4 @@
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Main {
 
@@ -14,17 +8,26 @@ public class Main {
 
 		for (File fileEntry : folder.listFiles()) {
 
-		//File fileEntry = new File("C:\\Users\\cille_000\\Documents\\DTU\\DiplomProject\\tests\\2018-09-11 07.04.35.json");
-		
+		//File fileEntry = new File("C:\\Users\\cille_000\\Documents\\DTU\\DiplomProject\\tests\\2018-09-14 07.01.05.json");
+			
 			ScheduleCreater scheduleCreater = new ScheduleCreater(fileEntry.getAbsolutePath());
 			
 			scheduleCreater.preProcesing();
 			//scheduleCreater.printMatrix();
 			scheduleCreater.createInitialSchedule();
+			System.out.println("First score: " + scheduleCreater.totalScore);
 			//scheduleCreater.printSchedule();
-			scheduleCreater.randomChangeOne();
-
+			scheduleCreater.doubleChange();
+			System.out.println("Double: " + scheduleCreater.totalScore);
+			//scheduleCreater.shortWorkDay();
+			//scheduleCreater.freePeriod();
+			//scheduleCreater.randomChangeOne();
+			//System.out.println("Random: " + scheduleCreater.totalScore);
+			scheduleCreater.randomTwoChange();
+			System.out.println("Random two: " + scheduleCreater.totalScore);
+			//scheduleCreater.printSchedule();
+			System.out.println();
 		}
 	}
-
+ 
 }

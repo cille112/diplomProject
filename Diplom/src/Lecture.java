@@ -6,7 +6,7 @@ public class Lecture {
 	int subGender;
 	boolean ignoreSub;
 	TimeInterval ti;
-	Substitute sub = null;
+	int sub = -1;
 	
 	public Lecture(int id, String subject, String classId, int subGender, boolean ignoreSub, TimeInterval ti){
 		this.id = id;
@@ -17,7 +17,7 @@ public class Lecture {
 		this.ti = ti;
 	}
 	
-	public void setSub(Substitute sub){
+	public void setSub(int sub){
 		this.sub = sub;
 	}
 	

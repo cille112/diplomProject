@@ -14,8 +14,7 @@ public class ScheduleCreater {
 	private String json = "";
 	private ArrayList<ArrayList<Lecture>> doubleLecture;
 	private int matchScore;
-	private int schedulePunish;
-	private int totalScore;
+	int totalScore;
 
 	public ScheduleCreater(String filePath){
 		calculate = new CalculatePunish();
@@ -27,6 +26,8 @@ public class ScheduleCreater {
 			e.printStackTrace();
 		}
 		reader = new DataReader(json);
+		TimeInterval.startList = new ArrayList<String>();
+		TimeInterval.endList = new ArrayList<String>();
 	}
 
 	public void preProcesing(){
@@ -36,6 +37,7 @@ public class ScheduleCreater {
 		TimeInterval.endList.sort(null);
 		sub = reader.createSubstitutes(lecture, TimeInterval.startList);	
 		matrix = reader.createWeigthMatrix(sub, lecture.length);
+
 	}
 
 	public void createInitialSchedule(){
@@ -60,7 +62,7 @@ public class ScheduleCreater {
 			try {
 				sub[i].setIndec(jobAssignment.columnPicked[i]);
 				sub[i].setWeigth(jobAssignment.orginalMatrix[i]);
-				lecture[jobAssignment.columnPicked[i]].setSub(sub[i]);
+				lecture[jobAssignment.columnPicked[i]].setSub(i);
 				sub[i].setLecture(lecture[jobAssignment.columnPicked[i]]);
 				//System.out.println(sub[i].id + " " + lecture[job.columnPicked[i]].id + " " + i);
 			} 
@@ -68,41 +70,61 @@ public class ScheduleCreater {
 			}
 		}
 		doubleLecture = reader.findDoubleLectures(lecture);
-		
-		schedulePunish = calculate.calculatePunishSchedule(sub, lecture, reader.timePen(), reader.gapPen()) + calculate.calculateDoublePen(reader.penDouble(), doubleLecture, lecture);
-		
-		System.out.println("Shc: " + calculate.calculatePunishSchedule(sub, lecture, reader.timePen(), reader.gapPen()) + " dou: " + calculate.calculateDoublePen(reader.penDouble(), doubleLecture, lecture));
-		
+
+		int schedulePunish;
+		schedulePunish = calculate.calculatePunishSchedule(sub, lecture, reader.timePen(), reader.gapPen()) + calculate.calculateDoublePen(reader.penDouble(), doubleLecture, lecture, sub);
+
+		//System.out.println("Shc: " + calculate.calculatePunishSchedule(sub, lecture, reader.timePen(), reader.gapPen()) + " dou: " + calculate.calculateDoublePen(reader.penDouble(), doubleLecture, lecture));
+
 		totalScore = matchScore - schedulePunish;
 
-		System.out.println("Matchscore: " + matchScore);
-		System.out.println("SchedulePunish: " + schedulePunish);
-		System.out.println("TotalScore: " + totalScore);
-		
 		sub = Substitute.removeSubs(sub);
-
-	}
-
-	public void randomTwoChange(){
+		lecture = Substitute.updateLecture(sub, lecture.length);
 		
 	}
-	
+
 	public void doubleChange(){
-		
+		ArrayList<Lecture[]> list = findDoubleNotSame();
+		for (int i = 0; i < list.size(); i++) {
+			Lecture a = list.get(i)[0];
+			Lecture b = list.get(i)[1];
+
+			boolean newScore = false;
+			int scoreOne = 0;
+			int scoreTwo = 0;
+			if(a.ti.start.compareTo(b.ti.start) == -1){
+				newScore = switchTwo(a.sub, b.sub-1, true);
+				scoreOne = totalScore;
+				if(newScore){
+					reverseSwitch(a.sub, b.sub-1);
+				}
+				newScore = switchTwo(a.sub+1, b.sub, true);
+				scoreTwo = totalScore;
+				if(scoreOne > scoreTwo){
+					if(newScore){
+						reverseSwitch(a.sub+1, b.sub);
+						switchTwo(a.sub, b.sub-1, true);
+					}
+				}
+			}
+			else{
+				newScore = switchTwo(b.sub, a.sub-1, true);
+				scoreOne = totalScore;
+				if(newScore){
+					reverseSwitch(b.sub, a.sub-1);
+				}
+				newScore = switchTwo(b.sub+1, a.sub, true);
+				scoreTwo = totalScore;
+				if(scoreOne > scoreTwo){
+					if(newScore){
+						reverseSwitch(b.sub+1, a.sub);
+						switchTwo(b.sub, a.sub-1, true);
+					}
+				}
+			}
+		}
 	}
-	
-	public void shortWorkDay(){
-		
-	}
-	
-	public void freePeriod(){
-		
-	}
-	
-	public void firstLastLecture(){
-		
-	}
-	
+
 	public void randomChangeOne(){
 		final long NANOSEC_PER_SEC = 1000l*1000*1000;
 
@@ -112,59 +134,107 @@ public class ScheduleCreater {
 			int first = (int) Math.floor(Math.random() * lecture.length);
 			int second = (int) Math.floor(Math.random() * sub.length);
 
-			first = lecture[first].sub.index;
+			first = sub[lecture[first].sub].index;
 
-			while(!sub[first].ti.start.equals(sub[second].ti.start) && sub[first].id != sub[second].id){
-				//System.out.println("not same: " + sub[first].ti.start + " " + sub[second].ti.start);
+			while(!sub[first].ti.start.equals(sub[second].ti.start) || sub[first].id == sub[second].id){
 				second = (int) Math.floor(Math.random() * sub.length);
 			}
+			switchTwo(first, second, true);
+		}
 
-			int tempScore = switchTwo(first, second);
+	}
 
 
-			if(totalScore < tempScore){
-				totalScore = tempScore;
+	public void randomTwoChange(){
+		final long NANOSEC_PER_SEC = 1000l*1000*1000;
+
+		long startTime = System.nanoTime();
+		//for (int i = 0; i < 10000; i++) {
+		while ((System.nanoTime()-startTime)< 3*60*NANOSEC_PER_SEC){
+
+			boolean firstSwitched = false;
+			boolean secondSwitched = false;
+			int tempTotal = totalScore;
+			int tempmatchScore = matchScore;
+
+			int first = (int) Math.floor(Math.random() * lecture.length);
+			int second = (int) Math.floor(Math.random() * sub.length);
+
+			first = sub[lecture[first].sub].index;
+
+			while(!sub[first].ti.start.equals(sub[second].ti.start) || sub[first].id == sub[second].id){
+				second = (int) Math.floor(Math.random() * sub.length);
 			}
-			else{
-				reverseSwitch(first, second);
+			firstSwitched = switchTwo(first, second, false);
+			int third = (int) Math.floor(Math.random() * lecture.length);
+			int fourth = (int) Math.floor(Math.random() * sub.length);
+
+			third = sub[lecture[third].sub].index;
+
+			while(!sub[third].ti.start.equals(sub[fourth].ti.start) || sub[third].id == sub[fourth].id){
+				fourth = (int) Math.floor(Math.random() * sub.length);
+			}
+			secondSwitched = switchTwo(third, fourth, false);
+
+			if(tempTotal >= totalScore){
+				if(secondSwitched)
+					reverseSwitch(third, fourth);
+				if(firstSwitched)
+					reverseSwitch(first, second);
+				totalScore = tempTotal;
+				matchScore = tempmatchScore;
 			}
 		}
-		System.out.println("New Total score " + totalScore);
 	}
-	
+
+	public void shortWorkDay(){
+		Substitute[] subs = findShortDay();
+		for (int i = 0; i < subs.length; i++) {
+
+		}
+	}
+
+	public void freePeriod(){
+		Substitute[] subs = findFreePeriods();
+		System.out.println(subs.length);
+	}
+
+	public void firstLastLecture(){
+
+	}
+
+
+
 	public void printSchedule(){
 		for (int i = 0; i < sub.length; i++) {
 			try {
-				System.out.println(sub[i].id + ": " + sub[i].lecture.id);
+				System.out.println(sub[i].id + " " + sub[i].ti.start + ": " + sub[i].lecture.id);
 			} catch (Exception e) {
 				System.out.println(sub[i].id + ": Free");
 			}
-			
+
 		}
 	}
-	
+
 	public void printMatrix(){
 		for (int i = 0; i < sub.length; i++) {
 			System.out.print(sub[i].id + " " + sub[i].ti.start + " ");
 			for (int j = 0; j < sub[i].weigth.length; j++) {
 				if(sub[i].weigth[j]> 0 && sub[i].weigth[j]<101)
-				System.out.print(sub[i].weigth[j] + " ");
+					System.out.print(sub[i].weigth[j] + " ");
 			}
 			System.out.println();
 		}
 	}
 
-	private int switchTwo(int first, int second){
+	private boolean switchTwo(int first, int second, boolean reverse){
 		Substitute a = sub[first];
 		Substitute b = sub[second];
-
 		int changes = 0;
-
 		int removeScore=0;
 		int addScore = 0;
 
 		if(b.weigth[a.index] > 0){
-
 			removeScore += a.weigth[a.index];
 			addScore += b.weigth[a.index];
 			changes++;
@@ -177,7 +247,6 @@ public class ScheduleCreater {
 		}
 
 		if(changes == 2){
-
 			int tempIndex = a.index;
 			Lecture tempLec = a.lecture;
 
@@ -189,16 +258,15 @@ public class ScheduleCreater {
 
 
 			try {
-				lecture[a.index].setSub(a);
+				lecture[a.index].setSub(first);
 			} catch (Exception e) {
-
 			}
 			try {
-				lecture[b.index].setSub(b);
+				lecture[b.index].setSub(second);
 			} catch (Exception e) {
 			}
 
-			int tempSchedulePunish = calculate.calculatePunishSchedule(sub, lecture, reader.timePen(), reader.gapPen()) + calculate.calculateDoublePen(reader.penDouble(), doubleLecture, lecture);
+			int tempSchedulePunish = calculate.calculatePunishSchedule(sub, lecture, reader.timePen(), reader.gapPen()) + calculate.calculateDoublePen(reader.penDouble(), doubleLecture, lecture, sub);
 
 			int tempScore = matchScore;
 
@@ -206,18 +274,29 @@ public class ScheduleCreater {
 			tempScore += addScore;
 			tempScore -= tempSchedulePunish;
 
-			return tempScore;
+			if(totalScore <= tempScore){
+				matchScore = matchScore - removeScore + addScore;
+				totalScore = tempScore;
+				return true;
+			}
+			if(reverse)
+				reverseSwitch(first, second);
+			else{
+				totalScore = tempScore;
+				matchScore = matchScore - removeScore + addScore;
+				return true;
+			}
 		}
-		return 0;
+		return false;
 	}
-	
+
 	private void reverseSwitch(int first, int second){
 		Substitute a = sub[first];
 		Substitute b = sub[second];
-		
+
 		int tempIndex = b.index;
 		Lecture tempLec = b.lecture;
-		
+
 		b.setIndec(a.index);
 		b.setLecture(a.lecture);
 
@@ -225,21 +304,91 @@ public class ScheduleCreater {
 		a.setLecture(tempLec);
 
 		try {
-			lecture[a.index].setSub(a);
+			lecture[a.index].setSub(first);
 		} catch (Exception e) {
 
 		}
 		try {
-			lecture[b.index].setSub(b);
+			lecture[b.index].setSub(second);
 		} catch (Exception e) {
 		}
 	}
-	
-	private Substitute[] findShortSub(){
-		
-		
-		
-		return null;
+
+
+	private ArrayList<Lecture[]> findDoubleNotSame(){
+		ArrayList<Lecture[]> lec = new ArrayList<>();
+		for (int i = 0; i < doubleLecture.size(); i++) {
+			try {
+				if(!(sub[doubleLecture.get(i).get(0).sub].id == (sub[doubleLecture.get(i).get(1).sub].id))){
+					Lecture[] temp = new Lecture[2];
+					temp[0] = doubleLecture.get(i).get(0);
+					temp[1] = doubleLecture.get(i).get(1);
+					lec.add(temp);
+				}
+			} catch (Exception e) {
+				return null;
+			}
+		}		
+		return lec;
 	}
 
+	private Substitute[] findShortDay(){
+		ArrayList<Substitute> list = new ArrayList<>();
+		ArrayList<Substitute> tmpList = new ArrayList<>();
+		int id = -1;
+		int tempTime = 0;
+		for (int i = 0; i < sub.length; i++) {
+			//System.out.println(sub[i].id);
+			if(id != sub[i].id){
+				if(tempTime > 0  && tempTime < 91){
+					tmpList.addAll(list);
+					list.clear();
+
+				}
+				id = sub[i].id;
+				tempTime = 0;
+				list.clear();
+			}
+			if(sub[i].lecture != null){
+				list.add(sub[i]);
+				tempTime += sub[i].ti.getMinutes();
+			}
+
+		}
+
+		if(tempTime > 0  && tempTime < 91){
+			tmpList.addAll(list);
+			list.clear();
+		}
+		return tmpList.toArray(new Substitute[tmpList.size()]);
+	}
+
+	public Substitute[] findFreePeriods(){
+		int id = -1;
+		int indexOne = -1;
+		int indexTwo = -1;
+		ArrayList<Substitute> list = new ArrayList<>();
+		for (int i = 0; i < sub.length; i++) {
+			if(id != sub[i].id){
+				id = sub[i].id;
+				indexOne = -1;
+				indexTwo = -1;
+				if(sub[i].lecture != null)
+					indexOne = i;
+			}
+			if(sub[i].lecture != null){
+				if(indexOne == -1)
+					indexOne =
+					i;
+				indexTwo = i;
+			}
+			if(indexTwo - indexOne > 1){
+				for (int j = indexOne+1; j < indexTwo; j++) {
+					list.add(sub[j]);
+				}
+			}
+			indexOne = indexTwo;
+		}
+		return list.toArray(new Substitute[list.size()]);
+	}
 }

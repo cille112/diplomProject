@@ -90,10 +90,10 @@ public class CalculatePunish {
 		return (int) Math.round(punish);
 	}
 
-	public int calculateDoublePen(double penalty, ArrayList<ArrayList<Lecture>> dubLec,  Lecture[] lec){
+	public int calculateDoublePen(double penalty, ArrayList<ArrayList<Lecture>> dubLec,  Lecture[] lec, Substitute[] sub){
 		int punish = 0;
 		for (int i = 0; i < dubLec.size(); i++) {
-			if(!(dubLec.get(i).get(0).sub.id == dubLec.get(i).get(1).sub.id)){
+			if(!(sub[dubLec.get(i).get(0).sub].id == sub[dubLec.get(i).get(1).sub].id)){
 				punish += penalty;
 			}
 		}
