@@ -7,6 +7,7 @@ public class Substitute {
 	int[] weigth;
 	Lecture lecture = null;
 	int index;
+	int ownIndex;
 
 	public Substitute(int id, TimeInterval ti, int[] weigth){
 		this.id = id;
@@ -33,6 +34,7 @@ public class Substitute {
 		for (int i = 0; i < sub.length; i++) {
 			for (int j = 0; j < sub[i].weigth.length; j++) {
 				if(!(sub[i].weigth[j] == 101 | sub[i].weigth[j] == 0)){
+					sub[i].ownIndex = list.size();
 					list.add(sub[i]);
 					break;
 				}
